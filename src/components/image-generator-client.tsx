@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Download, AlertCircle, ImageIcon, Sparkles } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Download, AlertCircle, ImageIcon, Sparkles, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizePrompt } from '@/ai/flows/sanitize-prompt';
 import { generateImage } from '@/ai/flows/generate-image';
@@ -20,13 +21,15 @@ const ImagePlaceholder = () => (
     <ImageIcon className="h-20 w-20 text-muted-foreground/50 mb-6" strokeWidth={1.5} />
     <p className="text-xl font-semibold text-foreground mb-2">Your Vision Awaits</p>
     <p className="text-sm text-muted-foreground">
-      Enter a prompt above and let our AI bring your ideas to life.
+      Enter a prompt and adjust settings, then let our AI bring your ideas to life.
     </p>
   </div>
 );
 
 export function ImageGeneratorClient() {
   const [prompt, setPrompt] = useState<string>('');
+  const [aspectRatio, setAspectRatio] = useState<string>('square');
+  const [stylePreset, setStylePreset] = useState<string>('none');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,11 @@ export function ImageGeneratorClient() {
         });
       }
       
-      const { imageUrl: newImageUrl } = await generateImage({ prompt: sanitizedPrompt });
+      const { imageUrl: newImageUrl } = await generateImage({ 
+        prompt: sanitizedPrompt,
+        aspectRatio,
+        stylePreset,
+      });
       setImageUrl(newImageUrl);
     } catch (err) {
       console.error('Image generation error:', err);
@@ -76,7 +83,6 @@ export function ImageGeneratorClient() {
     if (!imageUrl) return;
     const link = document.createElement('a');
     link.href = imageUrl;
-    // Try to determine file extension from data URI, default to png
     const mimeType = imageUrl.match(/data:image\/([^;]+);/);
     const extension = mimeType ? mimeType[1] : 'png';
     link.download = `gemini-vision-image.${extension}`;
@@ -114,6 +120,45 @@ export function ImageGeneratorClient() {
                 className="text-base py-3 px-4 rounded-md shadow-sm focus:ring-primary focus:border-primary"
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="aspectRatio" className="text-base font-medium mb-1.5 block">
+                  Aspect Ratio
+                </Label>
+                <Select value={aspectRatio} onValueChange={setAspectRatio} disabled={isLoading}>
+                  <SelectTrigger id="aspectRatio" className="w-full text-base py-3 px-4 rounded-md shadow-sm">
+                    <SelectValue placeholder="Select aspect ratio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="square">Square (1:1)</SelectItem>
+                    <SelectItem value="landscape">Landscape (16:9)</SelectItem>
+                    <SelectItem value="portrait">Portrait (9:16)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="stylePreset" className="text-base font-medium mb-1.5 block">
+                  Style Preset
+                </Label>
+                <Select value={stylePreset} onValueChange={setStylePreset} disabled={isLoading}>
+                  <SelectTrigger id="stylePreset" className="w-full text-base py-3 px-4 rounded-md shadow-sm">
+                    <SelectValue placeholder="Select style preset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default Style</SelectItem>
+                    <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                    <SelectItem value="digital art">Digital Art</SelectItem>
+                    <SelectItem value="cartoon">Cartoon</SelectItem>
+                    <SelectItem value="abstract">Abstract</SelectItem>
+                    <SelectItem value="impressionistic">Impressionistic</SelectItem>
+                    <SelectItem value="fantasy">Fantasy Art</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <Button
               type="submit"
               disabled={isLoading || !prompt.trim()}
@@ -156,6 +201,7 @@ export function ImageGeneratorClient() {
                     height={1024}
                     className="w-full h-auto object-contain rounded-t-xl transition-transform duration-300 group-hover:scale-105"
                     data-ai-hint="generated art"
+                    priority={true} // Add priority for faster LCP
                   />
                 </CardContent>
                 <CardFooter className="p-4 bg-muted/50 border-t">
