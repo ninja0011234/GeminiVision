@@ -72,6 +72,11 @@ const generateImageFlow = ai.defineFlow(
       },
     });
 
-    return {imageUrl: media.url!};
+    if (!media || !media.url) {
+      throw new Error('Image generation failed: The model did not return an image URL.');
+    }
+
+    return {imageUrl: media.url};
   }
 );
+
