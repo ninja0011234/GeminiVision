@@ -4,7 +4,7 @@
 /**
  * @fileOverview Image generation flow using Google Gemini API.
  *
- * - generateImage - A function that generates an image based on a text prompt, aspect ratio, style preset, quality, negative prompt, and seed.
+ * - generateImage - A function that generates an image based on a text prompt and various control parameters.
  * - GenerateImageInput - The input type for the generateImage function.
  * - GenerateImageOutput - The return type for the generateImage function.
  */
@@ -19,6 +19,9 @@ const GenerateImageInputSchema = z.object({
   quality: z.string().optional().describe('Desired image quality (e.g., "standard", "high", "ultra").'),
   negativePrompt: z.string().optional().describe('Elements to exclude from the image.'),
   seed: z.number().int().positive().optional().describe('Seed for deterministic image generation (experimental).'),
+  lighting: z.string().optional().describe('Lighting style for the image (e.g., "cinematic", "natural").'),
+  colorScheme: z.string().optional().describe('Color scheme for the image (e.g., "vibrant", "monochrome").'),
+  cameraView: z.string().optional().describe('Camera view or angle (e.g., "close_up", "wide_shot").'),
 });
 export type GenerateImageInput = z.infer<typeof GenerateImageInputSchema>;
 
@@ -68,16 +71,56 @@ const generateImageFlow = ai.defineFlow(
       ultra: "ultra high quality, extremely detailed, masterpiece, professional lighting, 8k resolution, fine art",
     };
 
+    const lightingHints: Record<string, string> = {
+        cinematic: "cinematic lighting, dramatic shadows, high contrast",
+        natural: "natural lighting, soft shadows, realistic light",
+        studio: "studio lighting, controlled illumination, softbox light",
+        ambient: "ambient occlusion, soft indirect lighting, global illumination",
+        backlit: "backlit, rim lighting, silhouette effect",
+        volumetric: "volumetric lighting, light rays, atmospheric haze",
+        moody: "moody lighting, dark, mysterious atmosphere",
+    };
+
+    const colorSchemeHints: Record<string, string> = {
+        vibrant: "vibrant colors, highly saturated, rich hues",
+        monochrome: "monochrome, black and white, grayscale",
+        pastel: "pastel colors, soft tones, muted palette",
+        warm: "warm color palette, reds, oranges, yellows",
+        cool: "cool color palette, blues, greens, purples",
+        neon: "neon colors, glowing, fluorescent, cyberpunk aesthetic",
+        sepia: "sepia tone, vintage, brownish tint",
+    };
+
+    const cameraViewHints: Record<string, string> = {
+        eye_level: "eye-level shot, standard perspective",
+        close_up: "close-up shot, detailed view",
+        medium_shot: "medium shot, waist up",
+        full_shot: "full shot, full body in frame",
+        wide_shot: "wide shot, landscape, establishing shot",
+        macro: "macro shot, extreme close-up, tiny details",
+        birds_eye: "bird's eye view, top-down perspective, overhead shot",
+        low_angle: "low angle shot, looking up, worm's eye view",
+        high_angle: "high angle shot, looking down",
+        dutch_angle: "dutch angle, tilted camera, canted angle",
+    };
+
     if (input.aspectRatio && aspectHints[input.aspectRatio]) {
       effectivePrompt += `, ${aspectHints[input.aspectRatio]}`;
     }
-
     if (input.stylePreset && input.stylePreset !== 'none' && styleHints[input.stylePreset]) {
       effectivePrompt += `, ${styleHints[input.stylePreset]}`;
     }
-    
     if (input.quality && input.quality !== 'standard' && qualityHints[input.quality]) {
       effectivePrompt += `, ${qualityHints[input.quality]}`;
+    }
+    if (input.lighting && input.lighting !== 'none' && lightingHints[input.lighting]) {
+      effectivePrompt += `, ${lightingHints[input.lighting]}`;
+    }
+    if (input.colorScheme && input.colorScheme !== 'none' && colorSchemeHints[input.colorScheme]) {
+      effectivePrompt += `, ${colorSchemeHints[input.colorScheme]}`;
+    }
+    if (input.cameraView && input.cameraView !== 'none' && cameraViewHints[input.cameraView]) {
+      effectivePrompt += `, ${cameraViewHints[input.cameraView]}`;
     }
 
     if (input.negativePrompt && input.negativePrompt.trim() !== "") {
@@ -85,7 +128,7 @@ const generateImageFlow = ai.defineFlow(
     }
     
     const generationConfig: Record<string, any> = {
-        responseModalities: ['TEXT', 'IMAGE'], // Must include IMAGE
+        responseModalities: ['TEXT', 'IMAGE'], 
         safetySettings: [
           { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
           { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
@@ -95,11 +138,7 @@ const generateImageFlow = ai.defineFlow(
     };
     
     if (input.seed) {
-        // While Gemini doesn't have a direct 'seed' parameter in its public image generation API config,
-        // adding it to the prompt can sometimes influence consistency, though it's not guaranteed.
         effectivePrompt += `, generation seed: ${input.seed}`;
-        // If a direct seed parameter were available, it would be:
-        // generationConfig.seed = input.seed; 
     }
 
     const {media} = await ai.generate({
@@ -108,7 +147,7 @@ const generateImageFlow = ai.defineFlow(
       config: generationConfig,
     });
 
-    if (!media?.url) { // Check if media or media.url is null/undefined
+    if (!media?.url) {
       throw new Error('Image generation failed: The model did not return an image URL. This could be due to safety filters, a very complex prompt, or an internal issue.');
     }
 

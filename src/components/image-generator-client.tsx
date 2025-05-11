@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea'; // Added Textarea
-import { Loader2, Download, AlertCircle, ImageIcon, Sparkles, Settings2, Wand2, Palette, Crop, ShieldOff, Camera, CheckCircle, Star } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Download, AlertCircle, ImageIcon, Sparkles, Settings2, Wand2, Palette, Crop, ShieldOff, Camera, CheckCircle, Star, Lightbulb, Droplets, Aperture } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizePrompt } from '@/ai/flows/sanitize-prompt';
 import { generateImage } from '@/ai/flows/generate-image';
@@ -35,6 +35,9 @@ export function ImageGeneratorClient() {
   const [quality, setQuality] = useState<string>('standard');
   const [negativePrompt, setNegativePrompt] = useState<string>('');
   const [seed, setSeed] = useState<string>('');
+  const [lighting, setLighting] = useState<string>('none');
+  const [colorScheme, setColorScheme] = useState<string>('none');
+  const [cameraView, setCameraView] = useState<string>('none');
   
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -68,11 +71,11 @@ export function ImageGeneratorClient() {
         toast({
           title: 'Prompt Adjusted',
           description: `Your prompt was slightly modified for safety and clarity. Original: "${prompt}", Used: "${sanitizedPrompt}"`,
-          duration: 7000, // Longer duration for this important toast
+          duration: 7000, 
         });
       }
       
-      const effectivePrompt = sanitizedPrompt.trim() === "" ? prompt : sanitizedPrompt; // Use original if sanitized is empty
+      const effectivePrompt = sanitizedPrompt.trim() === "" ? prompt : sanitizedPrompt;
 
       const seedNumber = seed.trim() ? parseInt(seed, 10) : undefined;
       if (seed.trim() && (isNaN(seedNumber!) || seedNumber! <= 0)) {
@@ -92,13 +95,16 @@ export function ImageGeneratorClient() {
         quality,
         negativePrompt,
         seed: seedNumber,
+        lighting,
+        colorScheme,
+        cameraView,
       });
       setImageUrl(newImageUrl);
       toast({
         title: 'Image Generated!',
         description: 'Your masterpiece is ready.',
         variant: 'default',
-        className: 'bg-green-500 border-green-600 text-white', // Custom success toast
+        className: 'bg-green-500 border-green-600 text-white',
       });
     } catch (err) {
       console.error('Image generation error:', err);
@@ -140,7 +146,7 @@ export function ImageGeneratorClient() {
           </CardTitle>
           <p className="text-muted-foreground text-sm">Transform your ideas into stunning visuals with the power of AI.</p>
         </CardHeader>
-        <CardContent className="pt-8 space-y-8 px-6 pb-8"> {/* Increased padding and spacing */}
+        <CardContent className="pt-8 space-y-8 px-6 pb-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="prompt" className="text-lg font-semibold mb-2 block flex items-center text-foreground">
@@ -220,9 +226,78 @@ export function ImageGeneratorClient() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <Label htmlFor="lighting" className="text-base font-medium mb-1.5 block flex items-center">
+                  <Lightbulb className="h-5 w-5 mr-2 text-yellow-400" />
+                  Lighting
+                </Label>
+                <Select value={lighting} onValueChange={setLighting} disabled={isLoading}>
+                  <SelectTrigger id="lighting" className="w-full text-base py-3 px-4 rounded-lg shadow-sm border-input hover:border-primary/50 transition-colors">
+                    <SelectValue placeholder="Select lighting style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default</SelectItem>
+                    <SelectItem value="cinematic">Cinematic</SelectItem>
+                    <SelectItem value="natural">Natural Light</SelectItem>
+                    <SelectItem value="studio">Studio Light</SelectItem>
+                    <SelectItem value="ambient">Ambient Occlusion</SelectItem>
+                    <SelectItem value="backlit">Backlit</SelectItem>
+                    <SelectItem value="volumetric">Volumetric</SelectItem>
+                    <SelectItem value="moody">Moody</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="colorScheme" className="text-base font-medium mb-1.5 block flex items-center">
+                  <Droplets className="h-5 w-5 mr-2 text-blue-400" />
+                  Color Scheme
+                </Label>
+                <Select value={colorScheme} onValueChange={setColorScheme} disabled={isLoading}>
+                  <SelectTrigger id="colorScheme" className="w-full text-base py-3 px-4 rounded-lg shadow-sm border-input hover:border-primary/50 transition-colors">
+                    <SelectValue placeholder="Select color scheme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default</SelectItem>
+                    <SelectItem value="vibrant">Vibrant</SelectItem>
+                    <SelectItem value="monochrome">Monochrome</SelectItem>
+                    <SelectItem value="pastel">Pastel</SelectItem>
+                    <SelectItem value="warm">Warm Tones</SelectItem>
+                    <SelectItem value="cool">Cool Tones</SelectItem>
+                    <SelectItem value="neon">Neon</SelectItem>
+                    <SelectItem value="sepia">Sepia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="cameraView" className="text-base font-medium mb-1.5 block flex items-center">
+                  <Aperture className="h-5 w-5 mr-2 text-green-500" />
+                  Camera View
+                </Label>
+                <Select value={cameraView} onValueChange={setCameraView} disabled={isLoading}>
+                  <SelectTrigger id="cameraView" className="w-full text-base py-3 px-4 rounded-lg shadow-sm border-input hover:border-primary/50 transition-colors">
+                    <SelectValue placeholder="Select camera view" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Default</SelectItem>
+                    <SelectItem value="eye_level">Eye-Level</SelectItem>
+                    <SelectItem value="close_up">Close-Up</SelectItem>
+                    <SelectItem value="medium_shot">Medium Shot</SelectItem>
+                    <SelectItem value="full_shot">Full Shot</SelectItem>
+                    <SelectItem value="wide_shot">Wide Shot</SelectItem>
+                    <SelectItem value="macro">Macro</SelectItem>
+                    <SelectItem value="birds_eye">Bird's Eye View</SelectItem>
+                    <SelectItem value="low_angle">Low Angle</SelectItem>
+                    <SelectItem value="high_angle">High Angle</SelectItem>
+                    <SelectItem value="dutch_angle">Dutch Angle</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-6 pt-2"> {/* Added pt-2 for slight separation */}
                 <div>
                     <Label htmlFor="negativePrompt" className="text-base font-medium mb-1.5 block flex items-center">
                     <ShieldOff className="h-5 w-5 mr-2 text-red-500" />
@@ -248,7 +323,7 @@ export function ImageGeneratorClient() {
                         id="seed"
                         type="number"
                         value={seed}
-                        onChange={(e) => setSeed(e.target.value.replace(/[^0-9]/g, ''))} // Allow only numbers
+                        onChange={(e) => setSeed(e.target.value.replace(/[^0-9]/g, ''))} 
                         placeholder="e.g., 12345 (positive number)"
                         min="1"
                         disabled={isLoading}
@@ -307,7 +382,7 @@ export function ImageGeneratorClient() {
                     className="w-full h-auto object-contain rounded-t-xl transition-transform duration-300 ease-out group-hover:scale-105"
                     data-ai-hint="generated art masterpiece digital"
                     priority={true}
-                    unoptimized={imageUrl.startsWith('data:image/')} // For base64 images
+                    unoptimized={imageUrl.startsWith('data:image/')} 
                   />
                 </CardContent>
                 <CardFooter className="p-4 bg-muted/30 border-t border-primary/10 flex flex-col sm:flex-row sm:justify-between items-center gap-3">
